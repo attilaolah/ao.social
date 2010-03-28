@@ -85,12 +85,37 @@ Set up a dummy function as the downstream WSGI application::
 
     >>> from ao.social import middleware
     >>> def wsgi_app(environ, start_response):
-    ...     print 'I am the downstream application! The current user is:',
-    ...     print environ['ao.social.user']
+    ...     user = environ['ao.social.user']
+    ...     headers = [('content-type', 'text/html')]
+    ...     start_response('200 OK', headers)
+    ...     return ('Hello, %s' % repr(user),)
+    ...
 
 Now we can configure the middleware::
 
     >>> app = middleware.AuthMiddleware(wsgi_app, conf)
+
+We also need to add the ``beaker`` middleware for using Beaker sessions::
+
+    >>> import beaker.middleware
+    >>> app = beaker.middleware.SessionMiddleware(app, {
+    ...     'session.type': 'cookie',
+    ...     'session.key': 'session',
+    ...     'session.enctypt_key': 'fookey',
+    ...     'session.validate_key': 'barkey',
+    ... })
+
+The middleware will listen to requests on the path that it is configured with
+(``login_path``). On other paths, it will simply check if the user already has
+a session, in which case it would initialize the corresponding user and assign
+it to the ``ao.social.user`` WSGI environment variable. If no session is
+present, the ``ao.social.user`` variable will be ``None``::
+
+    >>> import webtest
+    >>> testapp = webtest.TestApp(app)
+
+    >>> testapp.get('/')
+    <200 OK text/html body='Hello, None'>
 
 Clean up after the tests::
 

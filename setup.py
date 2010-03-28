@@ -27,12 +27,14 @@ setup(
     install_requires=(
         'beaker',
         'oauth',
+        'pyfacebook',
         'python-openid',
     ),
     tests_require=(
         'minimock',
         'pyyaml',
         'simplejson',
+        'webtest',
         'zope.component',
         'zope.interface',
         'zope.testing',
@@ -42,6 +44,7 @@ setup(
             'minimock',
             'pyyaml',
             'simplejson',
+            'webtest',
             'zope.component',
             'zope.interface',
             'zope.testing',
