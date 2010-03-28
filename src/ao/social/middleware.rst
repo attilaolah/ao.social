@@ -121,7 +121,19 @@ If we go to the login pages, the individual login mechanisms are started. For
 example, if we go to the facebook login page::
 
     >>> testapp.get('/login/google/')
-    <302 Redirect text/html location: https://www.google.com/accounts/o8...>
+    <307 Temporary Redirect text/html location: https://www.google.com/...>
+
+The user gets redirected to Google, and on return the openid library is used to
+verify the credentials.
+
+The Facebook authentication works in a different way. The user must authorize
+the application, and have the corresponding (signed) cookies when he arrives on
+the login page. Otherwise, the user won't get authenticated::
+
+    >>> testapp.get('/login/facebook/')
+    Traceback (most recent call last):
+    ...
+    Unauthorized: Facebook Connect authentication failed.
 
 Clean up after the tests::
 

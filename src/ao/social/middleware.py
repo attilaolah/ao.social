@@ -1,5 +1,5 @@
-import cgi
-import os
+import webob
+import webob.exc
 
 from hashlib import md5
 
@@ -33,23 +33,19 @@ class AuthMiddleware(object):
     def __call__(self, environ, start_response):
         """Put the user object into the WSGI environment."""
 
+        request = webob.Request(environ)
+
         session = environ['beaker.session']
 
         # Try to log in the user
         for method in ('facebook', 'twitter', 'google'):
-            if environ['PATH_INFO'] == self.__login_path % method:
-                response = self.__handle_user(environ, method, 'connect')
+            if request.path_info == self.__login_path % method:
+                response = self.__handle_user(request, method, 'connect')
                 if response is not None:
-                    headers = [('content-type', 'text/html')]
-                    if response[0].startswith('3'):
-                        headers += [('Location', response[1])]
-                        start_response(response[0], headers)
-                        return ('',)
-                    start_response(response[0], headers)
-                    return (response[1],)
+                    return response(environ, start_response)
 
         # Check if the user already has a session
-        environ['ao.social.user'] = 'user' in session and self.__get_user(
+        environ['ao.social.user'] = 'user' in session and self.__user_class.get(
             session['key']) or None
 
         # Call the downstream application
@@ -102,7 +98,7 @@ class AuthMiddleware(object):
 
         raise NotImplementedError('Connect is not implemented yet.')
 
-    def __handle_user(self, environ, method, mode='login'):
+    def __handle_user(self, request, method, mode='login'):
         """Handles authentication for the user.
 
         If `mode` is set to 'connect', it will assume that a user is already
@@ -113,7 +109,7 @@ class AuthMiddleware(object):
 
         # Check if the user has logged in via Facebook Connect.
         if method == 'facebook':
-            uid = self.__facebook_client.get_user_id(environ)
+            uid = self.__facebook_client.get_user_id(request)
             if uid is None:
                 raise Unauthorized('Facebook Connect authentication failed.')
             # Ok, Facebook user is verified.
@@ -121,18 +117,17 @@ class AuthMiddleware(object):
 
         # Check if the user has logged in via Twitter's Oauth.
         if method == 'twitter':
-            if  not all((key in cgi.parse_qs(environ['QUERY_STRING']) \
-                for key in ('oauth_token', 'oauth_verifier'))):
+            keys = ('oauth_token', 'oauth_verifier')
+            if  not all(key in request.GET for key in keys):
                 # Redirect the user to Twitter's authorization URL.
                 auth_url = self.__login_path % method
                 auth_url = self.__twitter_client.get_authorization_url(
-                    self.__build_absolute_uri(environ, auth_url))
+                    self.__build_absolute_uri(request.environ, auth_url))
                 return '302 Redirect', auth_url
             try:
-                query = cgi.parse_qs(environ['QUERY_STRING'])
                 user = self.__twitter_client.get_user_info(
-                    query['oauth_token'],
-                    query['oauth_verifier'],
+                    request.GET['oauth_token'],
+                    request.GET['oauth_verifier'],
                 )
                 # OK, Twitter user is verified.
                 raise NotImplementedError('OK: twitter user is logged in.')
@@ -141,14 +136,14 @@ class AuthMiddleware(object):
 
         # Check if the user has logged in via Google OpenID/OAuth.
         if method == 'google':
-            query = cgi.parse_qsl(environ['QUERY_STRING'])
-            query = dict((k, unicode(v, 'utf-8')) for k, v in query)
-            if len(query) < 2:
+            if len(request.GET) < 2:
                 # Create a custom auth request and redirect the user.
-                return '302 Redirect', self.__google_client.redirect()
+                return webob.exc.HTTPTemporaryRedirect(
+                    location=self.__google_client.redirect(),
+                )
             # Hopefully the user has come back from the auth request url.
-            user = self.__google_client.get_user(query,
-                self.__build_absolute_uri(environ))
+            user = self.__google_client.get_user(request.GET,
+                self.__build_absolute_uri(request.environ))
             if user is None:
                 raise Unauthorized('Google OpenID authentication failed.')
             # OK, Google user is verified.
