@@ -32,7 +32,6 @@ use a YAML file::
     >>> import yaml
     >>> conf = yaml.load(confstr)
 
-
 Note that for the google login to work, the callback must be the login path for
 google::
 
@@ -79,8 +78,8 @@ example, we're going to mock a simple, non-persistent ``User`` class::
     >>> __builtin__.__original_import__ = __builtin__.__import__
     >>> __builtin__.__import__ = fake_import
 
-    >>> #import foomodule.models
-    >>> #foomodule.models.User = User
+    >>> import foomodule.models
+    >>> foomodule.models.User = User
 
 Set up a dummy function as the downstream WSGI application::
 
