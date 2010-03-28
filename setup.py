@@ -9,7 +9,8 @@ setup(
     version='1.0.0',
     license='GNU GPL',
     url='http://github.com/aatiis/ao.social',
-    description='Reusable social networking and authentication components.',
+    description='Social networking middleware for Facebook, Twitter, LinkedIn'\
+    ' and Google (OpenID + Buzz)',
     long_description=\
         open('README.rst').read() + \
         open('TODO.rst').read() + \
@@ -23,6 +24,11 @@ setup(
     namespace_packages=('ao',),
     include_package_data=True,
     zip_safe=True,
+    install_requires=(
+        'beaker',
+        'oauth',
+        'python-openid',
+    ),
     tests_require=(
         'minimock',
         'zope.component',
