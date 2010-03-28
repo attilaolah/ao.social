@@ -135,6 +135,15 @@ the login page. Otherwise, the user won't get authenticated::
     ...
     Unauthorized: Facebook Connect authentication failed.
 
+Twitter works similarly to Google, but since we didn't set up valid credentials
+for testing, we won't be able to get an authorization token from the Twitter
+server::
+
+    >>> testapp.get('/login/twitter/')
+    Traceback (most recent call last):
+    ...
+    AttributeError: 'NoneType' object has no attribute 'content'
+
 Clean up after the tests::
 
     >>> from zope.testing import cleanup
