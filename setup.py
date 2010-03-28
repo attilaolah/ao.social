@@ -31,6 +31,8 @@ setup(
     ),
     tests_require=(
         'minimock',
+        'pyyaml',
+        'simplejson',
         'zope.component',
         'zope.interface',
         'zope.testing',
@@ -38,6 +40,8 @@ setup(
     extras_require={
         'test': (
             'minimock',
+            'pyyaml',
+            'simplejson',
             'zope.component',
             'zope.interface',
             'zope.testing',

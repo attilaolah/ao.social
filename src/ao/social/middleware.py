@@ -21,7 +21,6 @@ class AuthMiddleware(object):
 
         self.__app = app
 
-        self.__get_user = config['get_user']
         self.__user_class = self.__import_user(config['user_class'])
 
         self.__login_path = config['login_path']

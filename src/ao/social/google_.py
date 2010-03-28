@@ -1,6 +1,3 @@
-from django.conf import settings
-from django.core.urlresolvers import reverse
-
 from openid.consumer.consumer import Consumer, SUCCESS
 from openid.extension import Extension
 from openid.extensions.ax import AttrInfo, FetchRequest as AXFetchRequest
