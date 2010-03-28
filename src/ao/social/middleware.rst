@@ -117,6 +117,12 @@ present, the ``ao.social.user`` variable will be ``None``::
     >>> testapp.get('/')
     <200 OK text/html body='Hello, None'>
 
+If we go to the login pages, the individual login mechanisms are started. For
+example, if we go to the facebook login page::
+
+    >>> testapp.get('/login/google/')
+    <302 Redirect text/html location: https://www.google.com/accounts/o8...>
+
 Clean up after the tests::
 
     >>> from zope.testing import cleanup

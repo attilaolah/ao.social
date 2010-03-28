@@ -40,10 +40,12 @@ class AuthMiddleware(object):
             if environ['PATH_INFO'] == self.__login_path % method:
                 response = self.__handle_user(environ, method, 'connect')
                 if response is not None:
-                    if 300 < response[0] < 400:
-                        start_response(response[0], (('Location', response[1]),))
+                    headers = [('content-type', 'text/html')]
+                    if response[0].startswith('3'):
+                        headers += [('Location', response[1])]
+                        start_response(response[0], headers)
                         return ('',)
-                    start_response(response[0], ())
+                    start_response(response[0], headers)
                     return (response[1],)
 
         # Check if the user already has a session
@@ -125,7 +127,7 @@ class AuthMiddleware(object):
                 auth_url = self.__login_path % method
                 auth_url = self.__twitter_client.get_authorization_url(
                     self.__build_absolute_uri(environ, auth_url))
-                return 302, auth_url
+                return '302 Redirect', auth_url
             try:
                 query = cgi.parse_qs(environ['QUERY_STRING'])
                 user = self.__twitter_client.get_user_info(
@@ -143,7 +145,7 @@ class AuthMiddleware(object):
             query = dict((k, unicode(v, 'utf-8')) for k, v in query)
             if len(query) < 2:
                 # Create a custom auth request and redirect the user.
-                return 302, self.__google_client.redirect()
+                return '302 Redirect', self.__google_client.redirect()
             # Hopefully the user has come back from the auth request url.
             user = self.__google_client.get_user(query,
                 self.__build_absolute_uri(environ))
