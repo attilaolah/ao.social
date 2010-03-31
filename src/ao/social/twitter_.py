@@ -148,8 +148,8 @@ class TwitterClient(object):
 
         """
 
-        auth_token = urllib.unquote(auth_token[0])
-        auth_verifier = urllib.unquote(auth_verifier[0])
+        auth_token = urllib.unquote(auth_token)
+        auth_verifier = urllib.unquote(auth_verifier)
 
         auth_secret = memcache.get(self.__get_memcache_auth_key(auth_token))
 

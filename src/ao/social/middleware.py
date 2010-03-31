@@ -123,7 +123,9 @@ class AuthMiddleware(object):
                 auth_url = self.__login_path % method
                 auth_url = self.__twitter_client.get_authorization_url(
                     self.__build_absolute_uri(request.environ, auth_url))
-                return '302 Redirect', auth_url
+                return webob.Response(status=302, headers={
+                    'Location': auth_url,
+                })
             try:
                 user = self.__twitter_client.get_user_info(
                     request.GET['oauth_token'],
