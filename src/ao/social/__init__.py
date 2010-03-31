@@ -1,41 +1,39 @@
+def user(request):
+    """Adds the session user to the `RequestContext`."""
+
+    return {
+        'user': request.environ['ao.social.user'],
+    }
+
+
 class UserBase(object):
     """Base class for `User` implementations.."""
 
-    def update(self, method, data={}):
-        """Updates user information."""
+    def get_user(cls, key):
+        """Get a user for the corresponding method & external id."""
 
-        if method == 'ajax':
-            # Ajax callbacks must provide a valid key-value mapping
-            for item in data.iteritems():
-                setattr(self.__user, *item)
+        raise NotImplementedError('You must overload the `get_user` method.')
 
-        if method in ('twitter', 'google'):
-            # Twitter and Google provide the user's name
-            self.__user.name = data['name']
+    get_user = classmethod(get_user)
 
-        if method == 'twitter':
-            # Twitter also provides the user's profile image
-            self.__user.image = data['profile_image_url']
+    def lookup_user(cls, uid):
+        """Get a user for the corresponding method & external id."""
 
-        if method == 'google':
-            # Google also provides the user's email
-            self.__user.email = data['email']
+        raise NotImplementedError('You must overload the `lookup_user` method.')
 
-        if method == 'facebook':
-            # For facebook, we have to do an API call to retrive the info
-            info = ['name', 'email', 'pic_square_with_logo', 'profile_url']
-            uid = self.__user.uid.split(':', 1)[1]
-            data = self.__facebook_client.users.getInfo(uid, info)[0]
-            self.__user.name = data['name']
-            self.__user.email = data['email']
-            self.__user.image = data['pic_square_with_logo']
-            self.extend_token(method, profileurl=data['profile_url'])
+    lookup_user = classmethod(lookup_user)
 
-        self.__user.put()
+    def save_user(self):
+        """Get a user for the corresponding method & external id."""
 
-    def post_facebook(self, message):
-        """Post the message to the user's facebook profile."""
-        self.__facebook_client.stream.publish(
-            uid=self.accounts['facebook'],  # TODO: reimplement `accounts`
-            message=message,
-        )
+        raise NotImplementedError('You must overload the `save_user` method.')
+
+    def get_key(self):
+        """Returns a key that will be stored in session."""
+
+        raise NotImplementedError('You must overload the `get_key` method.')
+
+    def update_details(self, details):
+        """Update the user's details."""
+
+        raise NotImplementedError('You must overload the `update_details` method.')

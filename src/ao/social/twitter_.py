@@ -152,6 +152,7 @@ class TwitterClient(object):
         auth_verifier = urllib.unquote(auth_verifier)
 
         auth_secret = memcache.get(self.__get_memcache_auth_key(auth_token))
+        auth_secret = auth_secret or ''  # memcache might return None
 
         response = self.__make_verification_request(auth_token, auth_secret,
             auth_verifier, {'oauth_verifier': auth_verifier})

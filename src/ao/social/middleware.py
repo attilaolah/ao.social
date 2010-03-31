@@ -37,16 +37,18 @@ class AuthMiddleware(object):
 
         session = environ['beaker.session']
 
+        # Check if the user already has a session
+        environ['ao.social.user'] = None
+        if 'ao.social.user' in session:
+            environ['ao.social.user'] = self.__user_class.get_user(
+                session['ao.social.user'])
+
         # Try to log in the user
         for method in ('facebook', 'twitter', 'google'):
             if request.path_info == self.__login_path % method:
-                response = self.__handle_user(request, method, 'connect')
+                response = self.__handle_user(request, method, 'login')
                 if response is not None:
                     return response(environ, start_response)
-
-        # Check if the user already has a session
-        environ['ao.social.user'] = 'user' in session and self.__user_class.get(
-            session['key']) or None
 
         # Call the downstream application
         return self.__app(environ, start_response)
@@ -74,23 +76,44 @@ class AuthMiddleware(object):
 
     __import_user = staticmethod(__import_user)
 
-    def __login_user(self, request, method, login):
+    def __login_user(self, request, method, credentials):
         """Looks up the user and initiates a session."""
 
-        # XXX TODO!!!
-        request.user = queryUser(login, method)
+        uid = ':'.join((method, str(credentials['id'])))
+
+        # Get the user from the database backend (or create a new user)
+        user = self.__user_class.lookup_user(uid)
+
+        # Save the user's details and any associated tokens
+        if method == 'twitter':
+            first_name, _, last_name = credentials['name'].partition(' ')
+            details = {
+                'name': credentials['name'],
+                'first_name': first_name,
+                'last_name': last_name,
+                'avatar': credentials['profile_image_url'],
+            }
+
+        user.update_details(details)
+
+        # Prepare the response
         if method == 'facebook':
             # Facebook will redirect the main window, so we send the user back.
             response = HttpResponseRedirect(request.GET.get('redirect',
                 reverse('home')))
         if method in ('google', 'twitter'):
             # Handle Google/Twitter popup windows.
-            response = HttpResponse(self.__popup_html % request.GET.get(
-                'redirect', reverse('home')))
-        response.set_cookie('user', request.user.key().name(),
-            max_age=self.SESSION_TIMEOUT)
-        response.set_cookie('session', request.user.new_session(),
-            max_age=self.SESSION_TIMEOUT)
+            response = webob.Response(body=self.__popup_html % request.GET.get(
+                'redirect', '/'))
+
+        # Store the user's key in the session
+        session = request.environ['beaker.session']
+        session['ao.social.user'] = str(user.get_key())
+        session.save()
+
+        # Save changes to the user object
+        user.save_user()
+
         return response
 
     def __connect_user(self, request, method, login):
@@ -132,7 +155,11 @@ class AuthMiddleware(object):
                     request.GET['oauth_verifier'],
                 )
                 # OK, Twitter user is verified.
-                raise NotImplementedError('OK: twitter user is logged in.')
+                if mode == 'login':
+                    return self.__login_user(request, method, user)
+                if mode == 'connect':
+                    return self.__connect_user(request, method, user)
+                raise NotImplementedError('OK: twitter user is logged in.' + `user`)
             except oauth.OAuthError:
                 raise Unauthorized('Twitter OAuth authentication failed.')
 
