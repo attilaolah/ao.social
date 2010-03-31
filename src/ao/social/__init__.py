@@ -37,3 +37,10 @@ class UserBase(object):
         """Update the user's details."""
 
         raise NotImplementedError('You must overload the `update_details` method.')
+
+    def method(self):
+        """Returns the login method ('google', 'twitter' or 'facebook')."""
+
+        return self.uid.partition(':')[0]
+
+    method = property(method)

@@ -31,6 +31,7 @@ setup(
         'python-openid',
     ),
     tests_require=(
+        'django',
         'minimock',
         'pyyaml',
         'simplejson',
@@ -41,6 +42,7 @@ setup(
     ),
     extras_require={
         'test': (
+            'django',
             'minimock',
             'pyyaml',
             'simplejson',

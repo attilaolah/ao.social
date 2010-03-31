@@ -33,8 +33,14 @@ class AuthMiddleware(object):
     def __call__(self, environ, start_response):
         """Put the user object into the WSGI environment."""
 
+        # Save the login path, we might require it in template tags
+        environ['ao.social.login'] = self.__build_absolute_uri(environ,
+            self.__login_path)
+
+        # Create our own request object
         request = webob.Request(environ)
 
+        # We need beaker sessions for this middleware
         session = environ['beaker.session']
 
         # Check if the user already has a session
