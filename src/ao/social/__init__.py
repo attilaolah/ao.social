@@ -1,5 +1,6 @@
 from ao.social import facebook_ as facebook, google_ as google, \
     twitter_ as twitter
+from ao.social.json_ import json
 
 
 clients = {}
@@ -59,6 +60,13 @@ class UserBase(object):
     def post(self, method, text, *args, **kw):
         """Do a stream post or status update to the given service."""
 
+        if method == 'twitter':
+            token = self.get_token(method)
+            kw.update({
+                'token': token['token'],
+                'secret': token['secret'],
+            })
+
         client = getClient(method)
 
         return client.post(text, *args, **kw)
@@ -83,7 +91,7 @@ class UserBase(object):
         raise NotImplementedError('You must overload the `save_user` method.')
 
     def get_key(self):
-        """Returns a key that will be stored in session."""
+        """Return a key that will be stored in session."""
 
         raise NotImplementedError('You must overload the `get_key` method.')
 
@@ -93,8 +101,29 @@ class UserBase(object):
         raise NotImplementedError('You must overload the `update_details` method.')
 
     def method(self):
-        """Returns the login method ('google', 'twitter' or 'facebook')."""
+        """Return the login method ('google', 'twitter' or 'facebook')."""
 
         return self.uid.partition(':')[0]
 
     method = property(method)
+
+    def get_token(self, method):
+        """Return the token for the given method."""
+
+        if not hasattr(self, 'tokens'):
+            raise NotImplementedError('User object has no `tokens` attribute.')
+
+        return json.loads(self.tokens or '{}')[method]
+
+    def set_token(self, method, token):
+        """Store the token for the user."""
+
+        if not hasattr(self, 'tokens'):
+            raise NotImplementedError('User object has no `tokens` attribute.')
+
+        tokens = json.loads(self.tokens or '{}')
+        tokens[method] = token
+
+        self.tokens = json.dumps(tokens, separators=(',',':'))
+
+        self.save_user()

@@ -92,15 +92,17 @@ class AuthMiddleware(object):
 
         # Save the user's details and any associated tokens
         if method == 'twitter':
+            user.set_token('twitter', {
+                'token': credentials['token'],
+                'secret': credentials['secret'],
+            })
             first_name, _, last_name = credentials['name'].partition(' ')
-            details = {
+            user.update_details({
                 'name': credentials['name'],
                 'first_name': first_name,
                 'last_name': last_name,
                 'avatar': credentials['profile_image_url'],
-            }
-
-        user.update_details(details)
+            })
 
         # Prepare the response
         if method == 'facebook':

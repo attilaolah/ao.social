@@ -1,29 +1,23 @@
 import cgi
 
+from ao.social.json_ import json
+
 from google.appengine.api import memcache, urlfetch
 
 from oauth import oauth
 
-import urllib
-
-try:
-    import json
-except ImportError:
-    try:
-        import simplejson as json
-    except ImportError:
-        from django.utils import simplejson as json
+import urllib, urllib2
 
 
 class TwitterClient(object):
     """Twitter-specific OAuth client."""
 
     _default_config = {
-        'request_token_url': 'http://twitter.com/oauth/request_token',
-        'access_token_url': 'http://twitter.com/oauth/access_token',
-        'authorize_url': 'http://twitter.com/oauth/authorize',
-        'account_verification_url': 'http://twitter.com/account/verify_credentials.json',
-        'update_url': 'http://api.twitter.com/1/statuses/update.%(format)s',
+        'request_token_url': 'https://twitter.com/oauth/request_token',
+        'access_token_url': 'https://twitter.com/oauth/access_token',
+        'authorize_url': 'https://twitter.com/oauth/authorize',
+        'account_verification_url': 'https://twitter.com/account/verify_credentials.json',
+        'update_url': 'https://api.twitter.com/1/statuses/update.%(format)s',
     }
 
     def __init__(self, config={}):
@@ -187,8 +181,37 @@ class TwitterClient(object):
 
         return json.loads(response.content)
 
-    def post(self, text):
+    def post(self, text, token='', secret=''):
         """Do a Twitter profile update."""
 
+        url = self._config['update_url'] % {
+            'format': 'json',
+        }
 
-        return 'XXX'
+        data = {
+            'status': text.encode('utf-8'),
+        }
+        data = urllib.urlencode(data)
+
+        token = oauth.OAuthToken(token, secret)
+        request = oauth.OAuthRequest.from_consumer_and_token(
+            self._consumer,
+            token=token,
+            http_url=url,
+            http_method='POST',
+        )
+        request.set_parameter('status', text)
+        request.sign_request(
+            self._signature_method,
+            self._consumer,
+            token,
+        )
+
+        response = urlfetch.fetch(
+            url,
+            payload=data,
+            method=urlfetch.POST,
+            headers=request.to_header(),
+        )
+
+        return json.loads(response.content)
