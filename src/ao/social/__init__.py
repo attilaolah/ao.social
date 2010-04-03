@@ -23,9 +23,9 @@ def registerClient(method, config={}):
     }
 
     global clients
-    clients['twitter'] = client_classes[method](config)
+    clients[method] = client_classes[method](config)
 
-    return clients['twitter']
+    return clients[method]
 
 
 def getClient(method):
@@ -36,7 +36,8 @@ def getClient(method):
     try:
         return clients[method]
     except KeyError:
-        raise ImproperlyConfigured('The requested client is not initialized.')
+        raise ImproperlyConfigured('The requested client (%s) is not '\
+            'initialized (available clients: %s).' % (method, clients.keys()))
 
 
 def user(request):
@@ -54,6 +55,13 @@ def user(request):
 
 class UserBase(object):
     """Base class for `User` implementations."""
+
+    def post(self, method, text, *args, **kw):
+        """Do a stream post or status update to the given service."""
+
+        client = getClient(method)
+
+        return client.post(text, *args, **kw)
 
     def get_user(cls, key):
         """Get a user for the corresponding method & external id."""
