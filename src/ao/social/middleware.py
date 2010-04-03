@@ -1,16 +1,13 @@
 import webob
 import webob.exc
 
-from hashlib import md5
-
-from oauth import oauth
-
+from ao import social
 from ao.social import facebook_ as facebook, google_ as google, \
     twitter_ as twitter
 
+from hashlib import md5
 
-class Unauthorized(Exception):
-    """User is not authorized."""
+from oauth import oauth
 
 
 class AuthMiddleware(object):
@@ -26,9 +23,12 @@ class AuthMiddleware(object):
         self.__login_path = config['login_path']
         self.__popup_html = config['popup_html']
 
-        self.__facebook_client = facebook.FacebookClient(config['facebook'])
-        self.__google_client = google.GoogleClient(config['google'])
-        self.__twitter_client = twitter.TwitterClient(config['twitter'])
+        self.__facebook_client = social.registerClient('facebook',
+            config['facebook'])
+        self.__google_client = social.registerClient('google',
+            config['google'])
+        self.__twitter_client = social.registerClient('twitter',
+            config['twitter'])
 
     def __call__(self, environ, start_response):
         """Put the user object into the WSGI environment."""
@@ -140,7 +140,7 @@ class AuthMiddleware(object):
         if method == 'facebook':
             uid = self.__facebook_client.get_user_id(request)
             if uid is None:
-                raise Unauthorized('Facebook Connect authentication failed.')
+                raise social.Unauthorized('Facebook Connect authentication failed.')
             # Ok, Facebook user is verified.
             raise NotImplementedError('OK: facebook user is logged in.')
 
@@ -167,7 +167,7 @@ class AuthMiddleware(object):
                     return self.__connect_user(request, method, user)
                 raise NotImplementedError('OK: twitter user is logged in.' + `user`)
             except oauth.OAuthError:
-                raise Unauthorized('Twitter OAuth authentication failed.')
+                raise social.Unauthorized('Twitter OAuth authentication failed.')
 
         # Check if the user has logged in via Google OpenID/OAuth.
         if method == 'google':
@@ -180,6 +180,13 @@ class AuthMiddleware(object):
             user = self.__google_client.get_user(request.GET,
                 self.__build_absolute_uri(request.environ))
             if user is None:
-                raise Unauthorized('Google OpenID authentication failed.')
+                raise social.Unauthorized('Google OpenID authentication failed.')
             # OK, Google user is verified.
             raise NotImplementedError('OK: google user is logged in.')
+
+
+
+
+
+
+
