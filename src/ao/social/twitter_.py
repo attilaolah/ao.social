@@ -18,13 +18,24 @@ except ImportError:
 class TwitterClient(object):
     """Twitter-specific OAuth client."""
 
-    _signature_method = oauth.OAuthSignatureMethod_HMAC_SHA1()
+    _default_config = {
+        'request_token_url': 'http://twitter.com/oauth/request_token',
+        'access_token_url': 'http://twitter.com/oauth/access_token',
+        'authorize_url': 'http://twitter.com/oauth/authorize',
+        'account_verification_url': 'http://twitter.com/account/verify_credentials.json',
+        'update_url': 'http://api.twitter.com/1/statuses/update.%(format)s',
+    }
 
     def __init__(self, config={}):
         """Configure the client."""
 
+        for key, value in self._default_config.iteritems():
+            if key not in config:
+                config[key] = value
+
         self._config = config
 
+        self._signature_method = oauth.OAuthSignatureMethod_HMAC_SHA1()
         self._consumer = oauth.OAuthConsumer(config['key'], config['secret'])
 
     def _extract_credentials(self, result):
@@ -178,5 +189,6 @@ class TwitterClient(object):
 
     def post(self, text):
         """Do a Twitter profile update."""
+
 
         return 'XXX'

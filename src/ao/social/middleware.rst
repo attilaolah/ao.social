@@ -18,10 +18,6 @@ use a YAML file::
     ... twitter:
     ...   key: your-twitter-consumer-key
     ...   secret: your-twitter-consumer-secret
-    ...   request_token_url: http://twitter.com/oauth/request_token
-    ...   access_token_url: http://twitter.com/oauth/access_token
-    ...   authorize_url: http://twitter.com/oauth/authorize
-    ...   account_verification_url: http://twitter.com/account/verify_credentials.json
     ... google:
     ...   realm: http://www.example.com/
     ...   secret: yout-google-api-secret
