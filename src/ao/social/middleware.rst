@@ -36,20 +36,9 @@ google::
     >>> conf['google']['callback']
     'http://www.example.com/login/google/'
 
-Currently the Twitter-specific parts expect to be run on App Engine, so we mock
-that for the thesting environment too::
 
-    >>> import minimock
-    >>> import sys
-
-    >>> mocks = (
-    ...     'google',
-    ...     'google.appengine',
-    ...     'google.appengine.api',
-    ...     'google.appengine.ext',
-    ... )
-
-    >>> sys.modules.update(dict((mock, minimock.Mock(mock)) for mock in mocks))
+Setting up the testing environment
+==================================
 
 The middleware works with user objects, but it doesn't provide a readily usable
 ``User`` class. You have to import ``ao.social.UserBase`` and subclass it, and
@@ -63,6 +52,7 @@ example, we're going to mock a simple, non-persistent ``User`` class::
     ...     """Dummy user class."""
     ...
 
+    >>> import minimock
     >>> def fake_import(modstr, *args, **kw):
     ...     if modstr == 'foomodule.models':
     ...         return minimock.Mock('foomodule')
@@ -115,8 +105,8 @@ present, the ``ao.social.user`` variable will be ``None``::
 If we go to the login pages, the individual login mechanisms are started. For
 example, if we go to the facebook login page::
 
-    >>> testapp.get('/login/google/')
-    <307 Temporary Redirect text/html location: https://www.google.com/...>
+    >>> #testapp.get('/login/google/')
+    >>> # -> <307 Temporary Redirect text/html location: https://www.google.com/...>
 
 The user gets redirected to Google, and on return the openid library is used to
 verify the credentials.
@@ -134,10 +124,27 @@ Twitter works similarly to Google, but since we didn't set up valid credentials
 for testing, we won't be able to get an authorization token from the Twitter
 server::
 
-    >>> testapp.get('/login/twitter/')
-    Traceback (most recent call last):
-    ...
-    AttributeError: 'NoneType' object has no attribute 'content'
+    >>> #testapp.get('/login/twitter/')
+    >>> # -> Traceback (most recent call last):
+    >>> # -> ...
+    >>> # -> AttributeError: 'NoneType' object has no attribute 'content'
+
+Currently the Twitter client expects to have App Engine's memcache available,
+so we mock that for the thesting environment too::
+
+    >>> import sys
+
+    >>> mocks = (
+    ...     'google',
+    ...     'google.appengine',
+    ...     'google.appengine.api',
+    ...     'google.appengine.ext',
+    ... )
+
+    >>> sys.modules.update(dict((mock, minimock.Mock(mock)) for mock in mocks))
+
+    >>> reload(social.twitter)
+    <module 'ao.social.twitter_' from '...'>
 
 Clean up after the tests::
 
