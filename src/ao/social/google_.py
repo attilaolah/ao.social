@@ -1,3 +1,5 @@
+import cgi
+
 from openid import extension, message
 from openid.consumer import consumer
 from openid.extensions import ax
@@ -52,7 +54,7 @@ class GoogleClient(object):
         return authrequest.redirectURL(self._config['realm'],
             self._config['callback'])
 
-    def get_user(query, callback):
+    def get_user(self, query, callback):
         """Verify the request and returns the user's credentials on success."""
 
         # We use the GenericConsumer class, so we need to add the nonce:
@@ -74,8 +76,6 @@ class GoogleClient(object):
                 'name': '%s %s' % (firstname, lastname),
                 'profileurl': url,
             }
-
-    get_user = staticmethod(get_user)
 
 
 class UIFetchRequest(extension.Extension):

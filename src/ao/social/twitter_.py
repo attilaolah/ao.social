@@ -44,7 +44,7 @@ except ImportError:
             """Lazily fetch the response."""
 
             if self._response is None:
-                response = urllib2.urlopen(Request)
+                response = urllib2.urlopen(self._request)
                 self._response = {
                     'obj': response,
                     'data': response.read(),

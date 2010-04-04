@@ -1,8 +1,7 @@
-from django import template
-
 import md5
-
 import urllib
+
+from django import template
 
 
 register = template.Library()
@@ -68,7 +67,7 @@ class Avatar(template.Node):
     def gravatar(email, size=120):
         """Constructs a Gravatar image URL."""
 
-        return 'http://www.gravatar.com/avatar.php?%s' % urlencode({
+        return 'http://www.gravatar.com/avatar.php?%s' % urllib.urlencode({
             'gravatar_id': md5((email or '').lower()).hexdigest(),
             'size': str(size),
         })
@@ -80,7 +79,7 @@ class Avatar(template.Node):
 
         user = context['request'].environ['ao.social.user']
 
-        url = user.avatar or gravatar(user.email,
+        url = user.avatar or self.gravatar(user.email,
             max(map(int, (self.width, self.height))))
 
         img = '<img src="%s" alt="%s" style="width: %spx; height: %spx;"/>'

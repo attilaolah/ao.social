@@ -2,10 +2,6 @@ import webob
 import webob.exc
 
 from ao import social
-from ao.social import facebook_ as facebook, google_ as google, \
-    twitter_ as twitter
-
-from hashlib import md5
 
 from oauth import oauth
 
@@ -107,8 +103,7 @@ class AuthMiddleware(object):
         # Prepare the response
         if method == 'facebook':
             # Facebook will redirect the main window, so we send the user back.
-            response = HttpResponseRedirect(request.GET.get('redirect',
-                reverse('home')))
+            raise NotImplementedError('TODO: facebook')
         if method in ('google', 'twitter'):
             # Handle Google/Twitter popup windows.
             response = webob.Response(body=self.__popup_html % request.GET.get(
