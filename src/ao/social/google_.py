@@ -1,42 +1,47 @@
-from openid.consumer.consumer import Consumer, SUCCESS
-from openid.extension import Extension
-from openid.extensions.ax import AttrInfo, FetchRequest as AXFetchRequest
-from openid.message import OPENID2_NS
-from openid.store.memstore import MemoryStore
+from openid import extension, message
+from openid.consumer import consumer
+from openid.extensions import ax
+from openid.store import memstore
 
 
 AX_NS = 'http://openid.net/srv/ax/1.0'
-
-# Required information for Attribute Exchange
-required = {
-    'firstname': 'http://axschema.org/namePerson/first',
-    'lastname': 'http://axschema.org/namePerson/last',
-    'email': 'http://axschema.org/contact/email',
-}
 
 
 class GoogleClient(object):
     """Holds the settings for Google-specific OpenID."""
 
+    # Required information for Attribute Exchange
+    required = {
+        'firstname': 'http://axschema.org/namePerson/first',
+        'lastname': 'http://axschema.org/namePerson/last',
+        'email': 'http://axschema.org/contact/email',
+    }
+
+    _default_config = {
+        'endpoint': 'https://www.google.com/accounts/o8/id',
+    }
+
     def __init__(self, config={}):
         """Configure the client."""
 
-        self.__endpoint = config['endpoint']
-        self.__realm = config['realm']
-        self.__callback = config['callback']
+        for key, value in self._default_config.iteritems():
+            if key not in config:
+                config[key] = value
+
+        self._config = config
 
     def redirect(self):
-        """Returns a custom auth request url."""
+        """Return a custom auth request url."""
 
-        consumer = Consumer({}, MemoryStore())
+        gconsumer = consumer.Consumer({}, memstore.MemoryStore())
 
         # Create an auth request to the given endpoint
-        authrequest = consumer.begin(self.__endpoint)
+        authrequest = gconsumer.begin(self._config['endpoint'])
 
-        # Create an Attribute Exchange extension request with the required fields
-        axrequest = AXFetchRequest(self.__callback)
-        for alias, url in required.iteritems():
-            axrequest.add(AttrInfo(url, alias=alias, required=True))
+        # Create an Attribute Exchange extension request
+        axrequest = ax.FetchRequest(self._config['callback'])
+        for alias, url in self.required.iteritems():
+            axrequest.add(ax.AttrInfo(url, alias=alias, required=True))
         authrequest.addExtension(axrequest)
 
         # Create and apply a custom User Interface extension request
@@ -44,21 +49,22 @@ class GoogleClient(object):
         authrequest.addExtension(uirequest)
 
         # Return the generated URL
-        return authrequest.redirectURL(self.__realm, self.__callback)
+        return authrequest.redirectURL(self._config['realm'],
+            self._config['callback'])
 
     def get_user(query, callback):
-        """Verifies the request and returns the user's credentials on success."""
+        """Verify the request and returns the user's credentials on success."""
 
         # We use the GenericConsumer class, so we need to add the nonce:
         if 'janrain_nonce' not in query:
             return None
 
-        consumer = Consumer({}, MemoryStore())
+        gconsumer = consumer.Consumer({}, memstore.MemoryStore())
         return_to = '%s?janrain_nonce=%s' % (callback, query['janrain_nonce'])
-        response = consumer.complete(query, return_to)
+        response = gconsumer.complete(query, return_to)
 
-        if response.status == SUCCESS:
-            url = response.message.getArg(OPENID2_NS, 'claimed_id')
+        if response.status == consumer.SUCCESS:
+            url = response.message.getArg(message.OPENID2_NS, 'claimed_id')
             firstname, lastname, email = (response.message.getArg(AX_NS,
                 'value.%s' % val) for val in ('firstname', 'lastname', 'email'))
 
@@ -72,23 +78,25 @@ class GoogleClient(object):
     get_user = staticmethod(get_user)
 
 
-class UIFetchRequest(Extension):
+class UIFetchRequest(extension.Extension):
     """User Interface extension for OpenID."""
 
     ns_alias = 'ui'
     ns_uri = 'http://specs.openid.net/extensions/ui/1.0'
 
     def __init__(self, mode=None, icon=False, x_has_session=False):
+        """Some custom UI initialization."""
+
         super(UIFetchRequest, self).__init__()
-        self.__args = {}
-        if mode is not None:
-            self.__args.update({'mode': mode})
-        if icon:
-            self.__args.update({'icon': str(icon).lower()})
-        if x_has_session:
-            self.__args.update({'x-has-session': str(x_has_session).lower()})
+
+        self._args = {}
+
+        mode is not None and self._args.update({'mode': mode})
+        icon and self._args.update({'icon': str(icon).lower()})
+        x_has_session and self._args.update(
+            {'x-has-session': str(x_has_session).lower()})
 
     def getExtensionArgs(self):
         """Return extension arguments."""
 
-        return self.__args
+        return self._args

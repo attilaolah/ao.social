@@ -21,7 +21,6 @@ use a YAML file::
     ... google:
     ...   realm: http://www.example.com/
     ...   secret: yout-google-api-secret
-    ...   endpoint: https://www.google.com/accounts/o8/id
     ...   callback: http://www.example.com/login/google/
     ... """)
 
