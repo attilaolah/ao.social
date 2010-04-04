@@ -6,7 +6,7 @@ from google.appengine.api import memcache, urlfetch
 
 from oauth import oauth
 
-import urllib, urllib2
+import urllib
 
 
 class TwitterClient(object):
