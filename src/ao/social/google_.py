@@ -66,7 +66,7 @@ class GoogleClient(object):
         if response.status == consumer.SUCCESS:
             url = response.message.getArg(message.OPENID2_NS, 'claimed_id')
             firstname, lastname, email = (response.message.getArg(AX_NS,
-                'value.%s' % val) for val in ('firstname', 'lastname', 'email'))
+                'value.%s' % val) for val in self.required.keys())
 
             return {
                 'login': cgi.parse_qs(url.split('?', 1)[-1])['id'][0],

@@ -38,9 +38,11 @@ class LoginButton(template.Node):
         if self.method == 'google':
             button = '<a href="%s" class="login login-google popup">&nbsp;</a>'
         elif self.method == 'twitter':
-            button = '<a href="%s" class="login login-twitter popup">&nbsp;</a>'
+            button = '<a href="%s" class="login login-twitter popup">&nbsp;'\
+                '</a>'
         elif self.method == 'facebook':
-            button = '<fb:login-button onlogin="location.href=\'%s\'"></fb:login-button>'
+            button = '<fb:login-button onlogin="location.href=\'%s\'">'\
+                '</fb:login-button>'
 
         return button % auth_url
 

@@ -81,7 +81,8 @@ class UserBase(object):
     def lookup_user(cls, uid):
         """Get a user for the corresponding method & external id."""
 
-        raise NotImplementedError('You must overload the `lookup_user` method.')
+        raise NotImplementedError('You must overload the `lookup_user` '\
+            'method.')
 
     lookup_user = classmethod(lookup_user)
 
@@ -98,7 +99,8 @@ class UserBase(object):
     def update_details(self, details):
         """Update the user's details."""
 
-        raise NotImplementedError('You must overload the `update_details` method.')
+        raise NotImplementedError('You must overload the `update_details` '\
+            'method.')
 
     def method(self):
         """Return the login method ('google', 'twitter' or 'facebook')."""
@@ -124,6 +126,6 @@ class UserBase(object):
         tokens = json.loads(self.tokens or '{}')
         tokens[method] = token
 
-        self.tokens = json.dumps(tokens, separators=(',',':'))
+        self.tokens = json.dumps(tokens, separators=(',', ':'))
 
         self.save_user()

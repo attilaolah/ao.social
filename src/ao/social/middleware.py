@@ -142,7 +142,8 @@ class AuthMiddleware(object):
         if method == 'facebook':
             uid = self.__facebook_client.get_user_id(request)
             if uid is None:
-                raise social.Unauthorized('Facebook Connect authentication failed.')
+                raise social.Unauthorized('Facebook Connect authentication '\
+                    'failed.')
             # Ok, Facebook user is verified.
             raise NotImplementedError('OK: facebook user is logged in.')
 
@@ -167,9 +168,10 @@ class AuthMiddleware(object):
                     return self.__login_user(request, method, user)
                 if mode == 'connect':
                     return self.__connect_user(request, method, user)
-                raise NotImplementedError('OK: twitter user is logged in.' + `user`)
+                raise NotImplementedError('OK: twitter user is logged in.')
             except oauth.OAuthError:
-                raise social.Unauthorized('Twitter OAuth authentication failed.')
+                raise social.Unauthorized('Twitter OAuth authentication '\
+                    'failed.')
 
         # Check if the user has logged in via Google OpenID/OAuth.
         if method == 'google':
@@ -182,13 +184,7 @@ class AuthMiddleware(object):
             user = self.__google_client.get_user(request.GET,
                 self.__build_absolute_uri(request.environ))
             if user is None:
-                raise social.Unauthorized('Google OpenID authentication failed.')
+                raise social.Unauthorized('Google OpenID authentication '\
+                    'failed.')
             # OK, Google user is verified.
             raise NotImplementedError('OK: google user is logged in.')
-
-
-
-
-
-
-

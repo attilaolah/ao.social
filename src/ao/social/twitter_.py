@@ -74,7 +74,6 @@ except ImportError:
     urlfetch, memcache = URLFetch(), MemCache()
 
 
-
 class TwitterClient(object):
     """Twitter-specific OAuth client."""
 
@@ -82,7 +81,8 @@ class TwitterClient(object):
         'request_token_url': 'https://twitter.com/oauth/request_token',
         'access_token_url': 'https://twitter.com/oauth/access_token',
         'authorize_url': 'https://twitter.com/oauth/authorize',
-        'account_verification_url': 'https://twitter.com/account/verify_credentials.json',
+        'account_verification_url':
+            'https://twitter.com/account/verify_credentials.json',
         'update_url': 'https://api.twitter.com/1/statuses/update.%(format)s',
     }
 
