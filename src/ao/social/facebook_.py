@@ -35,10 +35,7 @@ class FacebookClient(object):
     def post(self, text, uid):
         """Post the message to the user's facebook profile"""
 
-        self._api.stream.publish(
-            uid=uid,
-            text=text,
-        )
+        self._api.stream.publish(uid=uid, message=text)
 
     def __getattr__(self, attr):
         """Delegate the rest of the calls to the API."""

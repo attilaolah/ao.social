@@ -60,12 +60,12 @@ class UserBase(object):
     def post(self, method, text, *args, **kw):
         """Do a stream post or status update to the given service."""
 
-        if method == 'twitter':
+        if method == 'facebook':
+            kw['uid'] = self.id
+        elif method == 'twitter':
             token = self.get_token(method)
-            kw.update({
-                'token': token['token'],
-                'secret': token['secret'],
-            })
+            kw['token'] = token['token']
+            kw['secret'] = token['secret']
 
         client = getClient(method)
 
@@ -101,6 +101,13 @@ class UserBase(object):
 
         raise NotImplementedError('You must overload the `update_details` '\
             'method.')
+
+    def id(self):
+        """Return the login id."""
+
+        return self.uid.partition(':')[2]
+
+    id = property(id)
 
     def method(self):
         """Return the login method ('google', 'twitter' or 'facebook')."""

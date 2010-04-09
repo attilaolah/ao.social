@@ -118,8 +118,8 @@ class AuthMiddleware(object):
             response = webob.exc.HTTPTemporaryRedirect(location=location)
         if method in ('google', 'twitter'):
             # Handle Google/Twitter popup windows.
-            response = webob.Response(body=self._popup_html % request.GET.get(
-                'redirect', '/'))
+            body = self._popup_html % request.GET.get('redirect', '/')
+            response = webob.Response(body=body)
 
         # Store the user's key in the session
         session = request.environ['beaker.session']
