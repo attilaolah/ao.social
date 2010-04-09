@@ -12,26 +12,26 @@ class AuthMiddleware(object):
     def __init__(self, app, config={}):
         """Configure the middleware."""
 
-        self.__app = app
+        self._app = app
 
-        self.__user_class = self.__import_user(config['user_class'])
+        self._user_class = self._import_user(config['user_class'])
 
-        self.__login_path = config['login_path']
-        self.__popup_html = config['popup_html']
+        self._login_path = config['login_path']
+        self._popup_html = config['popup_html']
 
-        self.__facebook_client = social.registerClient('facebook',
+        self._facebook_client = social.registerClient('facebook',
             config['facebook'])
-        self.__google_client = social.registerClient('google',
+        self._google_client = social.registerClient('google',
             config['google'])
-        self.__twitter_client = social.registerClient('twitter',
+        self._twitter_client = social.registerClient('twitter',
             config['twitter'])
 
     def __call__(self, environ, start_response):
         """Put the user object into the WSGI environment."""
 
         # Save the login path, we might require it in template tags
-        environ['ao.social.login'] = self.__build_absolute_uri(environ,
-            self.__login_path)
+        environ['ao.social.login'] = self._build_absolute_uri(environ,
+            self._login_path)
 
         # Create our own request object
         request = webob.Request(environ)
@@ -42,20 +42,20 @@ class AuthMiddleware(object):
         # Check if the user already has a session
         environ['ao.social.user'] = None
         if 'ao.social.user' in session:
-            environ['ao.social.user'] = self.__user_class.get_user(
+            environ['ao.social.user'] = self._user_class.get_user(
                 session['ao.social.user'])
 
         # Try to log in the user
         for method in ('facebook', 'twitter', 'google'):
-            if request.path_info == self.__login_path % method:
-                response = self.__handle_user(request, method, 'login')
+            if request.path_info == self._login_path % method:
+                response = self._handle_user(request, method, 'login')
                 if response is not None:
                     return response(environ, start_response)
 
         # Call the downstream application
-        return self.__app(environ, start_response)
+        return self._app(environ, start_response)
 
-    def __build_absolute_uri(environ, path='/'):
+    def _build_absolute_uri(environ, path='/'):
         """Constructs an absolute URI."""
 
         root = '%s://%s' % (environ['wsgi.url_scheme'], environ['HTTP_HOST'])
@@ -63,9 +63,9 @@ class AuthMiddleware(object):
 
         return root + path
 
-    __build_absolute_uri = staticmethod(__build_absolute_uri)
+    _build_absolute_uri = staticmethod(_build_absolute_uri)
 
-    def __import_user(cls):
+    def _import_user(cls):
         """Import the provided `User` class."""
 
         modstr, _, cls = cls.rpartition('.')
@@ -76,15 +76,15 @@ class AuthMiddleware(object):
 
         return getattr(mod, cls)
 
-    __import_user = staticmethod(__import_user)
+    _import_user = staticmethod(_import_user)
 
-    def __login_user(self, request, method, credentials):
+    def _login_user(self, request, method, credentials):
         """Looks up the user and initiates a session."""
 
         uid = ':'.join((method, str(credentials['id'])))
 
         # Get the user from the database backend (or create a new user)
-        user = self.__user_class.lookup_user(uid)
+        user = self._user_class.lookup_user(uid)
 
         # Save the user's details and any associated tokens
         if method == 'twitter':
@@ -106,7 +106,7 @@ class AuthMiddleware(object):
             raise NotImplementedError('TODO: facebook')
         if method in ('google', 'twitter'):
             # Handle Google/Twitter popup windows.
-            response = webob.Response(body=self.__popup_html % request.GET.get(
+            response = webob.Response(body=self._popup_html % request.GET.get(
                 'redirect', '/'))
 
         # Store the user's key in the session
@@ -119,12 +119,12 @@ class AuthMiddleware(object):
 
         return response
 
-    def __connect_user(self, request, method, login):
+    def _connect_user(self, request, method, login):
         """Connects the account to the current user."""
 
         raise NotImplementedError('Connect is not implemented yet.')
 
-    def __handle_user(self, request, method, mode='login'):
+    def _handle_user(self, request, method, mode='login'):
         """Handles authentication for the user.
 
         If `mode` is set to 'connect', it will assume that a user is already
@@ -135,7 +135,7 @@ class AuthMiddleware(object):
 
         # Check if the user has logged in via Facebook Connect.
         if method == 'facebook':
-            uid = self.__facebook_client.get_user_id(request)
+            uid = self._facebook_client.get_user_id(request)
             if uid is None:
                 raise social.Unauthorized('Facebook Connect authentication '\
                     'failed.')
@@ -147,22 +147,22 @@ class AuthMiddleware(object):
             keys = ('oauth_token', 'oauth_verifier')
             if  not all(key in request.GET for key in keys):
                 # Redirect the user to Twitter's authorization URL.
-                auth_url = self.__login_path % method
-                auth_url = self.__twitter_client.get_authorization_url(
-                    self.__build_absolute_uri(request.environ, auth_url))
+                auth_url = self._login_path % method
+                auth_url = self._twitter_client.get_authorization_url(
+                    self._build_absolute_uri(request.environ, auth_url))
                 return webob.Response(status=302, headers={
                     'Location': auth_url,
                 })
             try:
-                user = self.__twitter_client.get_user_info(
+                user = self._twitter_client.get_user_info(
                     request.GET['oauth_token'],
                     request.GET['oauth_verifier'],
                 )
                 # OK, Twitter user is verified.
                 if mode == 'login':
-                    return self.__login_user(request, method, user)
+                    return self._login_user(request, method, user)
                 if mode == 'connect':
-                    return self.__connect_user(request, method, user)
+                    return self._connect_user(request, method, user)
                 raise NotImplementedError('OK: twitter user is logged in.')
             except oauth.OAuthError:
                 raise social.Unauthorized('Twitter OAuth authentication '\
@@ -173,11 +173,11 @@ class AuthMiddleware(object):
             if len(request.GET) < 2:
                 # Create a custom auth request and redirect the user.
                 return webob.exc.HTTPTemporaryRedirect(
-                    location=self.__google_client.redirect(),
+                    location=self._google_client.redirect(),
                 )
             # Hopefully the user has come back from the auth request url.
-            user = self.__google_client.get_user(request.GET,
-                self.__build_absolute_uri(request.environ))
+            user = self._google_client.get_user(request.GET,
+                self._build_absolute_uri(request.environ))
             if user is None:
                 raise social.Unauthorized('Google OpenID authentication '\
                     'failed.')
