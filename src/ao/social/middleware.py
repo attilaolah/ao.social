@@ -34,7 +34,7 @@ class AuthMiddleware(object):
             self._login_path)
 
         # Create our own request object
-        request = webob.Request(environ)
+        request = webob.Request(environ, charset='utf-8')
 
         # We need beaker sessions for this middleware
         session = environ['beaker.session']
@@ -98,7 +98,7 @@ class AuthMiddleware(object):
                 'avatar': data['pic_square'],
                 'email': data['email'],
             })
-        if method == 'twitter':
+        elif method == 'twitter':
             user.set_token('twitter', {
                 'token': credentials['token'],
                 'secret': credentials['secret'],
@@ -110,13 +110,21 @@ class AuthMiddleware(object):
                 'last_name': last_name,
                 'avatar': credentials['profile_image_url'],
             })
+        elif method == 'google':
+            user.update_details({
+                'name': '%s %s' % (credentials['first_name'],
+                    credentials['last_name']),
+                'first_name': credentials['first_name'],
+                'last_name': credentials['last_name'],
+                'email': credentials['email'],
+            })
 
         # Prepare the response
         if method == 'facebook':
             # Facebook will redirect the main window, so we send the user back.
             location = self._build_absolute_uri(request.environ, '/')
             response = webob.exc.HTTPTemporaryRedirect(location=location)
-        if method in ('google', 'twitter'):
+        else:
             # Handle Google/Twitter popup windows.
             body = self._popup_html % request.GET.get('redirect', '/')
             response = webob.Response(body=body)
@@ -188,8 +196,9 @@ class AuthMiddleware(object):
                     location=self._google_client.redirect(),
                 )
             # Hopefully the user has come back from the auth request url.
-            user = self._google_client.get_user(request.GET,
-                self._build_absolute_uri(request.environ))
+            callback = self._build_absolute_uri(request.environ,
+                self._login_path % method)
+            user = self._google_client.get_user(request.GET, callback)
             if user is None:
                 raise social.Unauthorized('Google OpenID authentication '\
                     'failed.')

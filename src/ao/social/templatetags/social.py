@@ -1,7 +1,8 @@
-import md5
 import urllib
 
 from ao import social
+
+from hashlib import md5
 
 from django import template
 
