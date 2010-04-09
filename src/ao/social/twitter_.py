@@ -98,6 +98,11 @@ class TwitterClient(object):
         self._signature_method = oauth.OAuthSignatureMethod_HMAC_SHA1()
         self._consumer = oauth.OAuthConsumer(config['key'], config['secret'])
 
+    def key(self):
+        """Return the API key."""
+
+        return self._config['key']
+
     def _extract_credentials(self, result):
         """Extract Credentials.
 

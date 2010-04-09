@@ -1,10 +1,41 @@
 import md5
 import urllib
 
+from ao import social
+
 from django import template
 
 
 register = template.Library()
+
+
+def apikey(parser, token):
+    """Renders the API key."""
+
+    method = token.split_contents()[1]
+
+    if method not in ('facebook', 'twitter'):
+        raise template.TemplateSyntaxError('Unsupported method for `apikey`: '\
+            '%r' % method)
+
+    return APIKey(method)
+
+
+register.tag(apikey)
+
+
+class APIKey(template.Node):
+    """The API key node."""
+
+    def __init__(self, method):
+        """Save the login method to self.method."""
+
+        self.method = method
+
+    def render(self, context):
+        """Render a button for the given context."""
+
+        return social.getClient(self.method).key()
 
 
 def loginbutton(parser, token):

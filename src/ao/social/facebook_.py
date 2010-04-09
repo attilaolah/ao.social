@@ -1,3 +1,5 @@
+import facebook
+
 from hashlib import md5
 
 
@@ -7,18 +9,38 @@ class FacebookClient(object):
     def __init__(self, config={}):
         """Configure the client."""
 
-        self.__key = config['key']
-        self.__secret = config['secret']
+        self._key = config['key']
+        self._secret = config['secret']
+
+        self._api = facebook.Facebook(self._key, self._secret)
+
+    def key(self):
+        """Return the API key."""
+
+        return self._key
 
     def get_user_id(self, request):
         """Check if the user has authorized the application."""
 
-        if self.__key in request.cookies:
+        if self._key in request.cookies:
             hash = md5('expires=%ssession_key=%sss=%suser=%s%s' % tuple(
-                [request.cookies.get('%s_%s' % (self.__key, item)) \
+                [request.cookies.get('%s_%s' % (self._key, item)) \
                 for item in ('expires', 'session_key', 'ss', 'user')] +
-                [self.__secret],
+                [self._secret],
             )).hexdigest()
-            if hash == request.cookies[self.__key]:
+            if hash == request.cookies[self._key]:
                 # OK, Facebook user is verified: return the user id.
-                return str(request.cookies['%s_user' % self.__key])
+                return str(request.cookies['%s_user' % self._key])
+
+    def post(self, text, uid):
+        """Post the message to the user's facebook profile"""
+
+        self._api.stream.publish(
+            uid=uid,
+            text=text,
+        )
+
+    def __getattr__(self, attr):
+        """Delegate the rest of the calls to the API."""
+
+        return getattr(self._api, attr)

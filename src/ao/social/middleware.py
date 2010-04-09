@@ -87,6 +87,17 @@ class AuthMiddleware(object):
         user = self._user_class.lookup_user(uid)
 
         # Save the user's details and any associated tokens
+        if method == 'facebook':
+            uid = credentials['id']
+            info = ['name', 'first_name', 'last_name', 'email', 'pic_square']
+            data = self._facebook_client.users.getInfo(uid, info)[0]
+            user.update_details({
+                'name': data['name'],
+                'first_name': data['first_name'],
+                'last_name': data['last_name'],
+                'avatar': data['pic_square'],
+                'email': data['email'],
+            })
         if method == 'twitter':
             user.set_token('twitter', {
                 'token': credentials['token'],
@@ -103,7 +114,8 @@ class AuthMiddleware(object):
         # Prepare the response
         if method == 'facebook':
             # Facebook will redirect the main window, so we send the user back.
-            raise NotImplementedError('TODO: facebook')
+            location = self._build_absolute_uri(request.environ, '/')
+            response = webob.exc.HTTPTemporaryRedirect(location=location)
         if method in ('google', 'twitter'):
             # Handle Google/Twitter popup windows.
             response = webob.Response(body=self._popup_html % request.GET.get(
@@ -139,8 +151,10 @@ class AuthMiddleware(object):
             if uid is None:
                 raise social.Unauthorized('Facebook Connect authentication '\
                     'failed.')
-            # Ok, Facebook user is verified.
-            raise NotImplementedError('OK: facebook user is logged in.')
+            # OK, Twitter user is verified.
+            if mode == 'login':
+                return self._login_user(request, method, {'id': uid})
+            return self._connect_user(request, method, {'id': uid})
 
         # Check if the user has logged in via Twitter's Oauth.
         if method == 'twitter':
@@ -161,9 +175,7 @@ class AuthMiddleware(object):
                 # OK, Twitter user is verified.
                 if mode == 'login':
                     return self._login_user(request, method, user)
-                if mode == 'connect':
-                    return self._connect_user(request, method, user)
-                raise NotImplementedError('OK: twitter user is logged in.')
+                return self._connect_user(request, method, user)
             except oauth.OAuthError:
                 raise social.Unauthorized('Twitter OAuth authentication '\
                     'failed.')
@@ -182,4 +194,6 @@ class AuthMiddleware(object):
                 raise social.Unauthorized('Google OpenID authentication '\
                     'failed.')
             # OK, Google user is verified.
-            raise NotImplementedError('OK: google user is logged in.')
+            if mode == 'login':
+                return self._login_user(request, method, user)
+            return self._connect_user(request, method, user)
