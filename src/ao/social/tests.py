@@ -2,7 +2,7 @@ import doctest
 import unittest
 
 
-docfiles = ('middleware.rst',)
+docfiles = ('middleware.rst', 'django.rst')
 
 
 def test_suite():

@@ -148,5 +148,8 @@ so we mock that for the thesting environment too::
 
 Clean up after the tests::
 
+    >>> __builtin__.__import__ = __builtin__.__original_import__
+    >>> del __builtin__.__original_import__
+
     >>> from zope.testing import cleanup
     >>> cleanup.cleanUp()
