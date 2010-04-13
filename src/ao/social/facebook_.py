@@ -19,7 +19,7 @@ class FacebookClient(object):
 
         return self._key
 
-    def get_user_id(self, request):
+    def get_user(self, request):
         """Check if the user has authorized the application."""
 
         if self._key in request.cookies:
@@ -30,12 +30,26 @@ class FacebookClient(object):
             )).hexdigest()
             if hash == request.cookies[self._key]:
                 # OK, Facebook user is verified: return the user id.
-                return str(request.cookies['%s_user' % self._key])
+                return {
+                    'id': str(request.cookies['%s_user' % self._key]),
+                    'token': str(request.cookies['%s_session_key' % self._key]),
+                    'secret': str(request.cookies['%s_ss' % self._key]),
+                }
 
-    def post(self, text, uid):
+    def session_user(self, session):
+        """Verifies the user from the session dict."""
+
+        user = self._api.getLoggedInUser(
+            session_key=session['session_key'],
+            sig=session['sig'],
+        )
+
+        raise ValueError, user
+
+    def post(self, text, uid, **kw):
         """Post the message to the user's facebook profile"""
 
-        self._api.stream.publish(uid=uid, message=text)
+        self._api.stream.publish(uid=uid, message=text, **kw)
 
     def __getattr__(self, attr):
         """Delegate the rest of the calls to the API."""

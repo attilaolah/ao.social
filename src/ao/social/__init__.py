@@ -60,10 +60,10 @@ class UserBase(object):
     def post(self, method, text, *args, **kw):
         """Do a stream post or status update to the given service."""
 
+        token = self.get_token(method)
         if method == 'facebook':
-            kw['uid'] = self.id
+            kw['uid'] = token['uid']
         elif method == 'twitter':
-            token = self.get_token(method)
             kw['token'] = token['token']
             kw['secret'] = token['secret']
 
@@ -124,15 +124,23 @@ class UserBase(object):
 
         return json.loads(self.tokens or '{}')[method]
 
-    def set_token(self, method, token):
+    def set_token(self, method, token=None):
         """Store the token for the user."""
 
         if not hasattr(self, 'tokens'):
             raise NotImplementedError('User object has no `tokens` attribute.')
 
         tokens = json.loads(self.tokens or '{}')
-        tokens[method] = token
+        if token is None:
+            del tokens[method]
+        else:
+            tokens[method] = token
 
         self.tokens = json.dumps(tokens, separators=(',', ':'))
 
         self.save_user()
+
+    def clear_token(self, method):
+        """Remove the token."""
+
+        return self.set_token(method)

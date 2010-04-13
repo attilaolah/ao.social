@@ -42,9 +42,12 @@ class APIKey(template.Node):
 def loginbutton(parser, token):
     """Renders a login button."""
 
-    method = token.split_contents()[1]
+    token = token.split_contents()
 
-    return LoginButton(method)
+    method = token[1]
+    onlogin = len(token) > 2 and token[2] or None
+
+    return LoginButton(method, onlogin)
 
 
 register.tag(loginbutton)
@@ -53,27 +56,36 @@ register.tag(loginbutton)
 class LoginButton(template.Node):
     """The Login Button node."""
 
-    def __init__(self, method):
+    def __init__(self, method, onlogin=None):
         """Save the login method to self.method."""
 
         self.method = method
+        self.onlogin = onlogin
 
     def render(self, context):
         """Render a button for the given context."""
 
         environ = context['request'].environ
+        postlogin = 'opener.location.href=\'%s\'' % \
+            urllib.quote(environ['PATH_INFO'])
 
-        auth_url = environ['ao.social.login'] % self.method
-        auth_url += '?redirect=' + urllib.quote(environ['PATH_INFO'])
-
-        if self.method == 'google':
-            button = '<a href="%s" class="login login-google popup">&nbsp;</a>'
+        if self.method == 'facebook':
+            if self.onlogin is not None:
+                return '<fb:login-button onlogin="%s"></fb:login-button>' % \
+                    self.onlogin
+            button = '<fb:login-button onlogin="location.href=\'%s\'">'\
+                '</fb:login-button>'
+            postlogin = 'location.href=\\\'%s\\\'' % \
+                urllib.quote(environ['PATH_INFO'])
         elif self.method == 'twitter':
             button = '<a href="%s" class="login login-twitter popup">&nbsp;'\
                 '</a>'
-        elif self.method == 'facebook':
-            button = '<fb:login-button onlogin="location.href=\'%s\'">'\
-                '</fb:login-button>'
+        elif self.method == 'google':
+            button = '<a href="%s" class="login login-google popup">&nbsp;</a>'
+
+        auth_url = environ['ao.social.login'] % self.method
+        auth_url += '?postlogin=' + postlogin
+
 
         return button % auth_url
 

@@ -2,6 +2,7 @@ import webob
 import webob.exc
 
 from ao import social
+from ao.social.json_ import json
 
 from oauth import oauth
 
@@ -9,15 +10,47 @@ from oauth import oauth
 class AuthMiddleware(object):
     """Authentication and authorization middleware."""
 
+    _popup_html = """
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8"/>
+    <title></title>
+    <script>
+      try {
+        %(postlogin)s;
+      } catch (e) {};
+      close();
+    </script>
+  </head>
+</html>"""
+
+    _facebook_html_template = """
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8"/>
+    <title></title>
+    <script>
+    </script>
+    <script src="http://static.ak.fbcdn.net/connect/en_US/core.js"></script>
+    <script>
+      FB.init({apiKey: "%(apikey)s"})
+      //, "/xd-receiver.html", {
+      //  permsToRequestOnConnect:"%%(perms)s"
+      //});
+    </script>
+  </head>
+  <body>Hello, FB!</body>
+</html>"""
+
     def __init__(self, app, config={}):
         """Configure the middleware."""
 
         self._app = app
 
         self._user_class = self._import_user(config['user_class'])
-
         self._login_path = config['login_path']
-        self._popup_html = config['popup_html']
 
         self._facebook_client = social.registerClient('facebook',
             config['facebook'])
@@ -25,6 +58,10 @@ class AuthMiddleware(object):
             config['google'])
         self._twitter_client = social.registerClient('twitter',
             config['twitter'])
+
+        self._facebook_html = self._facebook_html_template % {
+            'apikey': self._facebook_client.key(),
+        }
 
     def __call__(self, environ, start_response):
         """Put the user object into the WSGI environment."""
@@ -81,16 +118,17 @@ class AuthMiddleware(object):
     def _login_user(self, request, method, credentials):
         """Looks up the user and initiates a session."""
 
-        uid = ':'.join((method, str(credentials['id'])))
+        id = str(credentials['id'])
+        uid = ':'.join((method, id))
+        session = request.environ['beaker.session']
 
         # Get the user from the database backend (or create a new user)
         user = self._user_class.lookup_user(uid)
 
         # Save the user's details and any associated tokens
         if method == 'facebook':
-            uid = credentials['id']
             info = ['name', 'first_name', 'last_name', 'email', 'pic_square']
-            data = self._facebook_client.users.getInfo(uid, info)[0]
+            data = self._facebook_client.users.getInfo(id, info)[0]
             user.update_details({
                 'name': data['name'],
                 'first_name': data['first_name'],
@@ -98,17 +136,23 @@ class AuthMiddleware(object):
                 'avatar': data['pic_square'],
                 'email': data['email'],
             })
-        elif method == 'twitter':
-            user.set_token('twitter', {
+            user.set_token('facebook', {
+                'uid': id,
                 'token': credentials['token'],
                 'secret': credentials['secret'],
             })
+        elif method == 'twitter':
             first_name, _, last_name = credentials['name'].partition(' ')
             user.update_details({
                 'name': credentials['name'],
                 'first_name': first_name,
                 'last_name': last_name,
                 'avatar': credentials['profile_image_url'],
+            })
+            user.set_token('twitter', {
+                'uid': id,
+                'token': credentials['token'],
+                'secret': credentials['secret'],
             })
         elif method == 'google':
             user.update_details({
@@ -118,19 +162,19 @@ class AuthMiddleware(object):
                 'last_name': credentials['last_name'],
                 'email': credentials['email'],
             })
+            user.set_token('google', {
+                'uid': id,
+            })
 
         # Prepare the response
-        if method == 'facebook':
-            # Facebook will redirect the main window, so we send the user back.
-            location = self._build_absolute_uri(request.environ, '/')
-            response = webob.exc.HTTPTemporaryRedirect(location=location)
-        else:
-            # Handle Google/Twitter popup windows.
-            body = self._popup_html % request.GET.get('redirect', '/')
-            response = webob.Response(body=body)
+        postlogin = ''
+        if 'postlogin' in session:
+            postlogin = session['postlogin']
+            del session['postlogin']
+        body = self._popup_html % {'postlogin': postlogin}
+        response = webob.Response(body=body)
 
         # Store the user's key in the session
-        session = request.environ['beaker.session']
         session['ao.social.user'] = str(user.get_key())
         session.save()
 
@@ -139,10 +183,43 @@ class AuthMiddleware(object):
 
         return response
 
-    def _connect_user(self, request, method, login):
+    def _connect_user(self, request, method, credentials):
         """Connects the account to the current user."""
 
-        raise NotImplementedError('Connect is not implemented yet.')
+        id = str(credentials['id'])
+        user = request.environ['ao.social.user']
+        session = request.environ['beaker.session']
+
+        # Save the user's details and any associated tokens
+        if method == 'facebook':
+            user.set_token('facebook', {
+                'uid': id,
+                'token': credentials['token'],
+                'secret': credentials['secret'],
+            })
+        elif method == 'twitter':
+            user.set_token('twitter', {
+                'uid': id,
+                'token': credentials['token'],
+                'secret': credentials['secret'],
+            })
+        elif method == 'google':
+            user.set_token('google', {
+                'uid': id,
+            })
+
+        # Prepare the response
+        postlogin = ''
+        if 'postlogin' in session:
+            postlogin = session['postlogin']
+            del session['postlogin']
+        body = self._popup_html % {'postlogin': postlogin}
+        response = webob.Response(body=body)
+
+        # Save changes to the user object
+        user.save_user()
+
+        return response
 
     def _handle_user(self, request, method, mode='login'):
         """Handles authentication for the user.
@@ -153,16 +230,26 @@ class AuthMiddleware(object):
 
         """
 
+        user = request.environ['ao.social.user']
+        session = request.environ['beaker.session']
+
+        # Save the post login action in the session.
+        if 'postlogin' in request.GET:
+            session['postlogin'] = request.GET['postlogin']
+            session.save()
+
         # Check if the user has logged in via Facebook Connect.
         if method == 'facebook':
-            uid = self._facebook_client.get_user_id(request)
-            if uid is None:
-                raise social.Unauthorized('Facebook Connect authentication '\
-                    'failed.')
-            # OK, Twitter user is verified.
-            if mode == 'login':
-                return self._login_user(request, method, {'id': uid})
-            return self._connect_user(request, method, {'id': uid})
+            facebook_user = self._facebook_client.get_user(request)
+            if facebook_user is None:
+                body = self._facebook_html % {
+                    'perms': request.GET.get('perms', ''),
+                }
+                return webob.Response(body=body)
+            # OK, Facebook user is verified.
+            if user is None:
+                return self._login_user(request, method, facebook_user)
+            return self._connect_user(request, method, facebook_user)
 
         # Check if the user has logged in via Twitter's Oauth.
         if method == 'twitter':
@@ -176,14 +263,14 @@ class AuthMiddleware(object):
                     'Location': auth_url,
                 })
             try:
-                user = self._twitter_client.get_user_info(
+                twitter_user = self._twitter_client.get_user_info(
                     request.GET['oauth_token'],
                     request.GET['oauth_verifier'],
                 )
                 # OK, Twitter user is verified.
-                if mode == 'login':
-                    return self._login_user(request, method, user)
-                return self._connect_user(request, method, user)
+                if user is None:
+                    return self._login_user(request, method, twitter_user)
+                return self._connect_user(request, method, twitter_user)
             except oauth.OAuthError:
                 raise social.Unauthorized('Twitter OAuth authentication '\
                     'failed.')
@@ -198,11 +285,11 @@ class AuthMiddleware(object):
             # Hopefully the user has come back from the auth request url.
             callback = self._build_absolute_uri(request.environ,
                 self._login_path % method)
-            user = self._google_client.get_user(request.GET, callback)
-            if user is None:
+            google_user = self._google_client.get_user(request.GET, callback)
+            if google_user is None:
                 raise social.Unauthorized('Google OpenID authentication '\
                     'failed.')
             # OK, Google user is verified.
-            if mode == 'login':
-                return self._login_user(request, method, user)
-            return self._connect_user(request, method, user)
+            if user is None:
+                return self._login_user(request, method, google_user)
+            return self._connect_user(request, method, google_user)
