@@ -1,0 +1,2 @@
+include *.rst
+include src/ao/social/*.rst
