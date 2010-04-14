@@ -32,14 +32,11 @@ class AuthMiddleware(object):
         self._user_class = self._import_user(config['user_class'])
         self._login_path = config['login_path']
 
-        self._facebook_client = social.registerClient('facebook',
-            config['facebook'])
-        self._google_client = social.registerClient('google',
-            config['google'])
-        self._twitter_client = social.registerClient('twitter',
-            config['twitter'])
-        self._linkedin_client = social.registerClient('linkedin',
-            config['linkedin'])
+        self._clients = {}
+        for method in ('facebook', 'google', 'twitter', 'linkedin'):
+            if method in config:
+                self._clients[method] = social.registerClient(method,
+                    config[method])
 
     def __call__(self, environ, start_response):
         """Put the user object into the WSGI environment."""
@@ -106,7 +103,7 @@ class AuthMiddleware(object):
         # Save the user's details and any associated tokens
         if method == 'facebook':
             info = ['name', 'first_name', 'last_name', 'email', 'pic_square']
-            data = self._facebook_client.users.getInfo(id, info)[0]
+            data = self._clients[method].users.getInfo(id, info)[0]
             user.update_details({
                 'name': data['name'],
                 'first_name': data['first_name'],
@@ -236,12 +233,10 @@ class AuthMiddleware(object):
 
         # Check if the user has logged in via Facebook Connect.
         if method == 'facebook':
-            facebook_user = self._facebook_client.get_user(request)
+            facebook_user = self._clients[method].get_user(request)
             if facebook_user is None:
-                body = self._facebook_html % {
-                    'perms': request.GET.get('perms', ''),
-                }
-                return webob.Response(body=body)
+                raise social.Unauthorized('Facebook Connect authentication '\
+                    'failed.')
             # OK, Facebook user is verified.
             if user is None:
                 return self._login_user(request, method, facebook_user)
@@ -253,13 +248,13 @@ class AuthMiddleware(object):
             if  not all(key in request.GET for key in keys):
                 # Redirect the user to Twitter's authorization URL.
                 auth_url = self._login_path % method
-                auth_url = self._twitter_client.get_authorization_url(
+                auth_url = self._clients[method].get_authorization_url(
                     self._build_absolute_uri(request.environ, auth_url))
                 return webob.Response(status=302, headers={
                     'Location': auth_url,
                 })
             try:
-                twitter_user = self._twitter_client.get_user_info(
+                twitter_user = self._clients[method].get_user_info(
                     request.GET['oauth_token'],
                     request.GET['oauth_verifier'],
                 )
@@ -276,12 +271,12 @@ class AuthMiddleware(object):
             if len(request.GET) < 2:
                 # Create a custom auth request and redirect the user.
                 return webob.exc.HTTPTemporaryRedirect(
-                    location=self._google_client.redirect(),
+                    location=self._clients[method].redirect(),
                 )
             # Hopefully the user has come back from the auth request url.
             callback = self._build_absolute_uri(request.environ,
                 self._login_path % method)
-            google_user = self._google_client.get_user(request.GET, callback)
+            google_user = self._clients[method].get_user(request.GET, callback)
             if google_user is None:
                 raise social.Unauthorized('Google OpenID authentication '\
                     'failed.')
@@ -296,13 +291,13 @@ class AuthMiddleware(object):
             if  not all(key in request.GET for key in keys):
                 # Redirect the user to LinkedIn's authorization URL.
                 auth_url = self._login_path % method
-                auth_url = self._linkedin_client.get_authorization_url(
+                auth_url = self._clients[method].get_authorization_url(
                     self._build_absolute_uri(request.environ, auth_url))
                 return webob.Response(status=302, headers={
                     'Location': auth_url,
                 })
             try:
-                linkedin_user = self._linkedin_client.get_user_info(
+                linkedin_user = self._clients[method].get_user_info(
                     request.GET['oauth_token'],
                     request.GET['oauth_verifier'],
                 )
