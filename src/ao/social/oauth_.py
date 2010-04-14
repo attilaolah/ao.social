@@ -1,6 +1,6 @@
 import cgi
 
-from ao.social.utils import memcache, urlfetch, json
+from ao.social.utils import memcache, urlfetch
 
 from oauth import oauth
 

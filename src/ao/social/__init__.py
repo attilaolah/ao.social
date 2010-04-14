@@ -66,7 +66,7 @@ class UserBase(object):
         token = self.get_token(method)
         if method == 'facebook':
             kw['uid'] = token['uid']
-        elif method == 'twitter':
+        elif method in ('twitter', 'linkedin'):
             kw['token'] = token['token']
             kw['secret'] = token['secret']
 

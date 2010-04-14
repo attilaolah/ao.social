@@ -1,6 +1,9 @@
 import re
 
 from ao.social.oauth_ import OAuthClient
+from ao.social.utils import urlfetch
+
+from oauth import oauth
 
 from xml.dom import minidom
 
@@ -31,8 +34,10 @@ class LinkedInClient(OAuthClient):
         'authorize_url': 'https://api.linkedin.com/uas/oauth/authorize',
         'account_verification_url':
             'https://api.linkedin.com/v1/people/~',
-        'update_url': 'XXXTODO',
+        'update_url': 'http://api.linkedin.com/v1/people/~/current-status',
     }
+    _set_status = '<?xml version="1.0" encoding="UTF-8"?><current-status>'\
+        '%(status)s</current-status>'
 
     def lookup_user_info(self, access_token, access_secret):
         """Lookup User Info.
@@ -54,4 +59,28 @@ class LinkedInClient(OAuthClient):
     def post(self, text, token='', secret=''):
         """Do a LinkedIn profile update."""
 
-        raise ValueError, 'POST NOT IMPLEMENTED YET'
+        url = self._config['update_url']
+
+        data = self._set_status % {
+            'status': text.encode('utf-8'),
+        }
+
+        token = oauth.OAuthToken(token, secret)
+        request = oauth.OAuthRequest.from_consumer_and_token(
+            self._consumer,
+            token=token,
+            http_url=url,
+            http_method='PUT',
+        )
+        request.sign_request(
+            self._signature_method,
+            self._consumer,
+            token,
+        )
+
+        response = urlfetch.fetch(
+            url,
+            payload=data,
+            method=urlfetch.PUT,
+            headers=request.to_header(),
+        )
