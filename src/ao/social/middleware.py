@@ -25,25 +25,6 @@ class AuthMiddleware(object):
   </head>
 </html>"""
 
-    _facebook_html_template = """
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8"/>
-    <title></title>
-    <script>
-    </script>
-    <script src="http://static.ak.fbcdn.net/connect/en_US/core.js"></script>
-    <script>
-      FB.init({apiKey: "%(apikey)s"})
-      //, "/xd-receiver.html", {
-      //  permsToRequestOnConnect:"%%(perms)s"
-      //});
-    </script>
-  </head>
-  <body>Hello, FB!</body>
-</html>"""
-
     def __init__(self, app, config={}):
         """Configure the middleware."""
 
@@ -58,10 +39,6 @@ class AuthMiddleware(object):
             config['google'])
         self._twitter_client = social.registerClient('twitter',
             config['twitter'])
-
-        self._facebook_html = self._facebook_html_template % {
-            'apikey': self._facebook_client.key(),
-        }
 
     def __call__(self, environ, start_response):
         """Put the user object into the WSGI environment."""
