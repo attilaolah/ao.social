@@ -17,7 +17,7 @@ class XML(object):
     def __init__(self, data):
         """Parse the DOM."""
 
-        self._xml = minidom.parseString(data)#.decode('utf-8'))
+        self._xml = minidom.parseString(data)
 
     def __getitem__(self, name):
         """Return the value of the named text node."""
@@ -78,7 +78,7 @@ class LinkedInClient(OAuthClient):
             token,
         )
 
-        response = urlfetch.fetch(
+        urlfetch.fetch(
             url,
             payload=data,
             method=urlfetch.PUT,

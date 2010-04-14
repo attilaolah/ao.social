@@ -6,7 +6,7 @@ from setuptools import find_packages, setup
 setup(
     # Package information:
     name='ao.social',
-    version='1.0.0',
+    version='1.0.1',
     license='GNU GPL',
     url='http://github.com/aatiis/ao.social',
     description='Social networking middleware for Facebook, Twitter, LinkedIn'\

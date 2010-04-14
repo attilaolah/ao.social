@@ -86,7 +86,6 @@ class LoginButton(template.Node):
         auth_url = environ['ao.social.login'] % self.method
         auth_url += '?postlogin=' + postlogin
 
-
         return button % auth_url
 
 

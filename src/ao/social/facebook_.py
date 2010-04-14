@@ -32,19 +32,10 @@ class FacebookClient(object):
                 # OK, Facebook user is verified: return the user id.
                 return {
                     'id': str(request.cookies['%s_user' % self._key]),
-                    'token': str(request.cookies['%s_session_key' % self._key]),
+                    'token': str(request.cookies['%s_session_key' % \
+                        self._key]),
                     'secret': str(request.cookies['%s_ss' % self._key]),
                 }
-
-    def session_user(self, session):
-        """Verifies the user from the session dict."""
-
-        user = self._api.getLoggedInUser(
-            session_key=session['session_key'],
-            sig=session['sig'],
-        )
-
-        raise ValueError, user
 
     def post(self, text, uid, **kw):
         """Post the message to the user's facebook profile"""

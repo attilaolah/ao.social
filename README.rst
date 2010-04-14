@@ -160,3 +160,5 @@ Django template context processors
 Add the ``ao.social.user`` template context processor to your django
 configuration and you'll have the ``user`` variable available in all your
 templates.
+
+
