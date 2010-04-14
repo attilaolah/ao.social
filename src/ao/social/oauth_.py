@@ -186,9 +186,7 @@ class OAuthClient(object):
 
         """
 
-        response = self._make_protected_request(access_token, access_secret, True)
-
-        return json.loads(response.content)
+        raise NotImplementedError('Subclasses must implement this method.')
 
     def post(self, text, token='', secret=''):
         """Do a profile profile update."""

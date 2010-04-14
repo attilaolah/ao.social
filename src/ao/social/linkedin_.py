@@ -1,4 +1,25 @@
+import re
+
 from ao.social.oauth_ import OAuthClient
+
+from xml.dom import minidom
+
+
+rx_key = re.compile('<url>.*?\?.*?;key=(.*?)(&.*|</url>)')
+
+
+class XML(object):
+    """Simple one-level XML node getter"""
+
+    def __init__(self, data):
+        """Parse the DOM."""
+
+        self._xml = minidom.parseString(data)#.decode('utf-8'))
+
+    def __getitem__(self, name):
+        """Return the value of the named text node."""
+
+        return self._xml.getElementsByTagName(name)[0].childNodes[0].nodeValue
 
 
 class LinkedInClient(OAuthClient):
@@ -21,9 +42,14 @@ class LinkedInClient(OAuthClient):
 
         """
 
-        response = self._make_protected_request(access_token, access_secret, True)
+        resp = self._make_protected_request(access_token, access_secret, True)
+        xml = XML(resp.content)
 
-        raise ValueError, response.content
+        return {
+            'id': rx_key.search(resp.content).group(1),
+            'first_name': xml['first-name'],
+            'last_name': xml['last-name'],
+        }
 
     def post(self, text, token='', secret=''):
         """Do a LinkedIn profile update."""

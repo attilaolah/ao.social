@@ -143,6 +143,18 @@ class AuthMiddleware(object):
             user.set_token('google', {
                 'uid': id,
             })
+        elif method == 'linkedin':
+            user.update_details({
+                'name': '%s %s' % (credentials['first_name'],
+                    credentials['last_name']),
+                'first_name': credentials['first_name'],
+                'last_name': credentials['last_name'],
+            })
+            user.set_token('linkedin', {
+                'uid': id,
+                'token': credentials['token'],
+                'secret': credentials['secret'],
+            })
 
         # Prepare the response
         postlogin = ''
@@ -184,6 +196,12 @@ class AuthMiddleware(object):
         elif method == 'google':
             user.set_token('google', {
                 'uid': id,
+            })
+        elif method == 'linkedin':
+            user.set_token('linkedin', {
+                'uid': id,
+                'token': credentials['token'],
+                'secret': credentials['secret'],
             })
 
         # Prepare the response
@@ -289,7 +307,6 @@ class AuthMiddleware(object):
                     request.GET['oauth_verifier'],
                 )
                 # OK, LinkedIn user is verified.
-                raise ValueError, linkedin_user
                 if user is None:
                     return self._login_user(request, method, linkedin_user)
                 return self._connect_user(request, method, linkedin_user)
