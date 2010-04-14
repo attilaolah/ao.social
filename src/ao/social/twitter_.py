@@ -1,7 +1,9 @@
 import urllib
 
-from ao.social.oauth_ import OauthClient
+from ao.social.oauth_ import OAuthClient
 from ao.social.utils import json, urlfetch
+
+from oauth import oauth
 
 
 class TwitterClient(OAuthClient):

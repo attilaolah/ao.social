@@ -1,6 +1,4 @@
-import urllib
-
-from ao.social.oauth_ import OauthClient
+from ao.social.oauth_ import OAuthClient
 
 
 class LinkedInClient(OAuthClient):
@@ -26,8 +24,6 @@ class LinkedInClient(OAuthClient):
         response = self._make_protected_request(access_token, access_secret, True)
 
         raise ValueError, response.content
-
-        return json.loads(response.content)
 
     def post(self, text, token='', secret=''):
         """Do a LinkedIn profile update."""

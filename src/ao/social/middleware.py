@@ -2,7 +2,6 @@ import webob
 import webob.exc
 
 from ao import social
-from ao.social.urils import json
 
 from oauth import oauth
 
