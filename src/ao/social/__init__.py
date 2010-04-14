@@ -1,6 +1,8 @@
-from ao.social import facebook_ as facebook, google_ as google, \
-    twitter_ as twitter
-from ao.social.json_ import json
+from ao.social import facebook_ as facebook
+from ao.social import twitter_ as twitter
+from ao.social import google_ as google
+from ao.social import linkedin_ as linkedin
+from ao.social.utils import json
 
 
 clients = {}
@@ -21,6 +23,7 @@ def registerClient(method, config={}):
         'twitter': twitter.TwitterClient,
         'google': google.GoogleClient,
         'facebook': facebook.FacebookClient,
+        'linkedin': linkedin.LinkedInClient,
     }
 
     global clients

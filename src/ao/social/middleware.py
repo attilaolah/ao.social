@@ -2,7 +2,7 @@ import webob
 import webob.exc
 
 from ao import social
-from ao.social.json_ import json
+from ao.social.urils import json
 
 from oauth import oauth
 
@@ -39,16 +39,18 @@ class AuthMiddleware(object):
             config['google'])
         self._twitter_client = social.registerClient('twitter',
             config['twitter'])
+        self._linkedin_client = social.registerClient('linkedin',
+            config['linkedin'])
 
     def __call__(self, environ, start_response):
         """Put the user object into the WSGI environment."""
 
+        # Create our own request object
+        request = webob.Request(environ, charset='utf-8')
+
         # Save the login path, we might require it in template tags
         environ['ao.social.login'] = self._build_absolute_uri(environ,
             self._login_path)
-
-        # Create our own request object
-        request = webob.Request(environ, charset='utf-8')
 
         # We need beaker sessions for this middleware
         session = environ['beaker.session']
@@ -60,7 +62,7 @@ class AuthMiddleware(object):
                 session['ao.social.user'])
 
         # Try to log in the user
-        for method in ('facebook', 'twitter', 'google'):
+        for method in ('facebook', 'twitter', 'google', 'linkedin'):
             if request.path_info == self._login_path % method:
                 response = self._handle_user(request, method, 'login')
                 if response is not None:
@@ -270,3 +272,28 @@ class AuthMiddleware(object):
             if user is None:
                 return self._login_user(request, method, google_user)
             return self._connect_user(request, method, google_user)
+
+        # Check if the user has logged in via LinkedIn's Oauth.
+        if method == 'linkedin':
+            keys = ('oauth_token', 'oauth_verifier')
+            if  not all(key in request.GET for key in keys):
+                # Redirect the user to LinkedIn's authorization URL.
+                auth_url = self._login_path % method
+                auth_url = self._linkedin_client.get_authorization_url(
+                    self._build_absolute_uri(request.environ, auth_url))
+                return webob.Response(status=302, headers={
+                    'Location': auth_url,
+                })
+            try:
+                linkedin_user = self._linkedin_client.get_user_info(
+                    request.GET['oauth_token'],
+                    request.GET['oauth_verifier'],
+                )
+                # OK, LinkedIn user is verified.
+                raise ValueError, linkedin_user
+                if user is None:
+                    return self._login_user(request, method, linkedin_user)
+                return self._connect_user(request, method, linkedin_user)
+            except oauth.OAuthError:
+                raise social.Unauthorized('LinkedIn OAuth authentication '\
+                    'failed.')
