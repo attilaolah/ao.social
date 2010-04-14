@@ -15,7 +15,7 @@ def apikey(parser, token):
 
     method = token.split_contents()[1]
 
-    if method not in ('facebook', 'twitter'):
+    if method not in ('facebook', 'twitter', 'linkedin'):
         raise template.TemplateSyntaxError('Unsupported method for `apikey`: '\
             '%r' % method)
 

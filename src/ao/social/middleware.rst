@@ -11,7 +11,6 @@ use a YAML file::
     >>> confstr = StringIO.StringIO("""
     ... login_path: /login/%s/
     ... user_class: foomodule.models.User
-    ... popup_html: This HTML should close itself and redirect it's opener.
     ... facebook:
     ...   key: your-facebook-api-key
     ...   secret: your-facebook-api-secret
@@ -20,7 +19,7 @@ use a YAML file::
     ...   secret: your-twitter-consumer-secret
     ... google:
     ...   realm: http://www.example.com/
-    ...   secret: yout-google-api-secret
+    ...   secret: your-google-api-secret
     ...   callback: http://www.example.com/login/google/
     ... """)
 
