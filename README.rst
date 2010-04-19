@@ -87,7 +87,7 @@ About the ``User`` object
 
 
 The ``ao.social`` middleware will put the user object in the WSGI enviromnent.
-You chould supply the user class when instantiating the middleware, and the
+You should supply the user class when instantiating the middleware, and the
 user class should be available to the middleware at that time. The base user
 class is available as ``ao.social.UserBase``, but you should subclass it with
 the *ORM* model of your choice to make it persistent. A basic interface is
