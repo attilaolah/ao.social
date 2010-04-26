@@ -104,8 +104,8 @@ present, the ``ao.social.user`` variable will be ``None``::
 If we go to the login pages, the individual login mechanisms are started. For
 example, if we go to the facebook login page::
 
-    >>> #testapp.get('/login/google/')
-    >>> # -> <307 Temporary Redirect text/html location: https://www.google.com/...>
+    >>> testapp.get('/login/google/')
+    <307 Temporary Redirect text/html location: https://www.google.com/...>
 
 The user gets redirected to Google, and on return the openid library is used to
 verify the credentials.
@@ -123,10 +123,10 @@ Twitter works similarly to Google, but since we didn't set up valid credentials
 for testing, we won't be able to get an authorization token from the Twitter
 server::
 
-    >>> #testapp.get('/login/twitter/')
-    >>> # -> Traceback (most recent call last):
-    >>> # -> ...
-    >>> # -> AttributeError: 'NoneType' object has no attribute 'content'
+    >>> testapp.get('/login/twitter/')
+    Traceback (most recent call last):
+    ...
+    HTTPError: HTTP Error 401: Unauthorized
 
 Currently the Twitter client expects to have App Engine's memcache available,
 so we mock that for the thesting environment too::
