@@ -11,10 +11,35 @@ except ImportError:
 
         except ImportError:
             raise ImportError('One of the following modules must be '\
-                'availbale: `json`, `simplejson`, `django.utils.simplejson`.')
+                'available: `json`, `simplejson`, `django.utils.simplejson`.')
 
 try:
-    from google.appengine.api import memcache, urlfetch
+    from google.appengine.api import memcache
+
+except ImportError:
+    try:
+        import memcache as memcache_module
+        mc = memcache_module.Client(['127.0.0.1:11211'], debug=0)
+
+        class MemCache(object):
+            """Mock the memcache object."""
+
+            def get(self, key):
+                """Get the key from the cache."""
+                #FIXME: mmh, probably not so good
+                return mc.get(key.encode('utf-8'))
+
+            def set(self, key, value, time):
+                """Get the key from the cache."""
+                mc.set(key, value, time)
+
+        memcache = MemCache()
+
+    except ImportError:
+        raise ImportError('You must install memcache')
+
+try:
+    from google.appengine.api import urlfetch
 
 except ImportError:
     import urllib2
@@ -56,6 +81,10 @@ except ImportError:
                     'data': response.read(),
                 }
 
+        @property
+        def status_code(self):
+            return self._response['obj'].getcode()
+
         def content(self):
             """Simulate the content property."""
 
@@ -64,17 +93,5 @@ except ImportError:
 
         content = property(content)
 
-    class MemCache(object):
-        """Mock the memcache object."""
+    urlfetch = URLFetch()
 
-        def get(self, key):
-            """Get the key from the cache."""
-
-            raise NotImplementedError('Memcache only works on App Engine.')
-
-        def set(self, key, value):
-            """Get the key from the cache."""
-
-            raise NotImplementedError('Memcache only works on App Engine.')
-
-    urlfetch, memcache = URLFetch(), MemCache()
