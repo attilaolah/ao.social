@@ -6,7 +6,7 @@ from setuptools import find_packages, setup
 setup(
     # Package information:
     name='ao.social',
-    version='1.0.1',
+    version='1.0.2',
     license='GNU GPL',
     url='http://github.com/aatiis/ao.social',
     description='Social networking middleware for Facebook, Twitter, LinkedIn'\
@@ -28,7 +28,7 @@ setup(
         'beaker',
         'oauth',
         'pyfacebook',
-        'python-openid',
+        'python-openid >= 2.2.5',
     ),
     tests_require=(
         'Django >= 1.1.1',
